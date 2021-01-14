@@ -7,12 +7,12 @@
 #include <ESP8266mDNS.h>        // For running OTA and Web Server
 #include <WiFiUdp.h>            // For running OTA
 #include <ArduinoOTA.h>         // For running OTA
+#include <TelnetSerial.h>       // For debugging via Telnet
 
 
 // Device Info
 const char* devicename = "initialESP";
 const char* devicepassword = "initialadmin";
-
 
 //for using LED as a startup status indicator
 #include <Ticker.h>
@@ -25,6 +25,10 @@ boolean ledState = LOW;   // Used for blinking LEDs when WifiManager in Connecti
 #endif
 const int ledPin =  LED_BUILTIN;  // the number of the LED pin
 
+// Telnet Serial variables
+TelnetSerial telnetSerial;  // Manage Telnet connection to receive Serial data
+Stream *usbSerial;          // Pointer to USB/Hardware Serial for fallback debugging
+
 // Used for running a simple program during loop to blink led
 // replace with real variables
 unsigned long previousMillis = 0;     // will store last time LED was updated
@@ -36,6 +40,7 @@ const long interval = 2000;           // interval at which to blink (millisecond
  *************************************************/
 void setup() {
   Serial.begin(115200);
+  Serial.println(ESP.getFullVersion());
 
   // set the digital pin as output:
   pinMode(ledPin, OUTPUT);
@@ -106,11 +111,20 @@ void setup() {
   });
   ArduinoOTA.begin();
 
+  // Setup Telnet Serial
+  telnetSerial.begin(115200);
+  usbSerial = telnetSerial.getOriginalSerial();
+
+  // Let USB/Hardware Serial know where to connect.
+  usbSerial->print("Ready! Use 'telnet ");
+  usbSerial->print(WiFi.localIP());
+  usbSerial->printf(" %d' to connect\n", TELNETSERIAL_DEFAULT_PORT);
+
 
   //
   // Done with Setup
   //
-  ticker.detach();          // Stop blinking the LED strip
+  ticker.detach();          // Stop blinking the LED
 }
 
 
@@ -121,7 +135,9 @@ void loop() {
   // Handle any requests
   ArduinoOTA.handle();
   MDNS.update();
+  telnetSerial.handle();
 
+  //************************************************
   // Blinking LED code to be replaced with real code
   unsigned long currentMillis = millis();
 
@@ -129,16 +145,21 @@ void loop() {
     // save the last time you blinked the LED
     previousMillis = currentMillis;
 
-    // if the LED is off turn it on and vice-versa:
+    // if the LED is off turn it on and vice-versa
     if (ledState == LOW) {
       ledState = HIGH;
+      usbSerial->println("usbSerial HIGH");
+      Serial.println("serial HIGH");
     } else {
       ledState = LOW;
+      usbSerial->println("usbSerial LOW");
+      Serial.println("serial LOW");
     }
 
-    // set the LED with the ledState of the variable:
+    // set the LED with the ledState variable
     digitalWrite(ledPin, ledState);
   }
+  //************************************************
 
 }
 
