@@ -5,6 +5,7 @@ ESP32 and ESP8266 initial code base for starting a solution.
 * Wifi access through WifiManager (hotspot will be started if cannot connect to Wifi)
 * Set up OTA for future updates
 * Set up mDNS to be able to find the device on the network
+* Set up remote debugging via TelnetSerial
 
 
 **Configuration:**
